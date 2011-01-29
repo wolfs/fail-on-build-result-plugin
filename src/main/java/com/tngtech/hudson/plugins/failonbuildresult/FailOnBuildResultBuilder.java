@@ -2,7 +2,13 @@ package com.tngtech.hudson.plugins.failonbuildresult;
 
 import hudson.Extension;
 import hudson.Launcher;
-import hudson.model.*;
+import hudson.model.AbstractBuild;
+import hudson.model.AbstractProject;
+import hudson.model.BuildListener;
+import hudson.model.Hudson;
+import hudson.model.Job;
+import hudson.model.Result;
+import hudson.model.Run;
 import hudson.tasks.BuildStepDescriptor;
 import hudson.tasks.Builder;
 import hudson.util.ComboBoxModel;
@@ -17,31 +23,37 @@ import java.util.List;
  * @author wolfs
  */
 public class FailOnBuildResultBuilder extends Builder {
-    public String getOtherProject() {
-        return otherProject;
+    private static final String FAIL_ON_BUILD_RESULT_LISTENER_PREFIX = "[FailOnBuildResult] ";
+
+    public String getOtherJob() {
+        return otherJob;
     }
 
-    String otherProject;
+    String otherJob;
 
     public FailOnBuildResultBuilder() {}
 
     @DataBoundConstructor
-    public FailOnBuildResultBuilder(String otherProject) {
-        this.otherProject = otherProject;
+    public FailOnBuildResultBuilder(String otherJob) {
+        this.otherJob = otherJob;
     }
 
     @Override
     public boolean perform(AbstractBuild<?, ?> build, Launcher launcher, BuildListener listener) throws InterruptedException, IOException {
-        Job otherProjectJob = Hudson.getInstance().getItemByFullName(otherProject, Job.class);
-        Run otherBuild = otherProjectJob.getLastBuild();
+        Job otherJobObject = Hudson.getInstance().getItemByFullName(otherJob, Job.class);
+        Run otherBuild = otherJobObject.getLastBuild();
         Result buildResult = otherBuild.getResult();
-        listener.getLogger().format("Result of build %s %s is %s.",
-                otherProjectJob.getFullDisplayName(), otherBuild.getDisplayName(), buildResult);
+        listener.getLogger().format(FAIL_ON_BUILD_RESULT_LISTENER_PREFIX +
+                Messages.FailOnBuildResultBuilder_ResultOfBuildIs(otherBuild.getFullDisplayName(), buildResult));
+        listener.getLogger().println();
 
         if (Result.SUCCESS.isBetterThan(buildResult)) {
-            listener.getLogger().println("Result is worse than threshold - failing");
+            listener.getLogger().println(FAIL_ON_BUILD_RESULT_LISTENER_PREFIX +
+                    Messages.FailOnBuildResultBuilder_ResultIsWorseThanThreshold());
             return false;
         } else {
+            listener.getLogger().println(FAIL_ON_BUILD_RESULT_LISTENER_PREFIX +
+                    Messages.FailOnBuildResultBuilder_ResultIsBetterOrEqualThanThreshold());
             return true;
         }
     }
@@ -55,21 +67,21 @@ public class FailOnBuildResultBuilder extends Builder {
             return true;
         }
 
-        public FormValidation doCheckOtherProject(@QueryParameter String otherProject) {
-            Job otherProjectJob = Hudson.getInstance().getItemByFullName(otherProject, Job.class);
+        @Override
+        public String getDisplayName() {
+            return Messages.FailOnBuildResultBuilder_DisplayName();
+        }
+
+        public FormValidation doCheckOtherJob(@QueryParameter String otherJob) {
+            Job otherProjectJob = Hudson.getInstance().getItemByFullName(otherJob, Job.class);
             if (otherProjectJob != null) {
                 return FormValidation.ok();
             } else {
-                return FormValidation.error("Project " + otherProject + " does not exist!");
+                return FormValidation.error(Messages.FailOnBuildResultBuilder_OtherJobValidation(otherJob));
             }
         }
 
-        @Override
-        public String getDisplayName() {
-            return "Fail if other project not successful";
-        }
-
-        public ComboBoxModel doFillOtherProjectItems() {
+        public ComboBoxModel doFillOtherJobItems() {
             ComboBoxModel model = new ComboBoxModel();
             List<Job> jobs = Hudson.getInstance().getItems(Job.class);
             for (Job job: jobs) {
