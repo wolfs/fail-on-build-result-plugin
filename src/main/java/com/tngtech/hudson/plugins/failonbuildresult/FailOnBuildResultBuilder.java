@@ -41,11 +41,15 @@ public class FailOnBuildResultBuilder extends Builder {
     @Override
     public boolean perform(AbstractBuild<?, ?> build, Launcher launcher, BuildListener listener) throws InterruptedException, IOException {
         Job otherJobObject = Hudson.getInstance().getItemByFullName(otherJob, Job.class);
-        Run otherBuild = otherJobObject.getLastBuild();
+        Run otherBuild = otherJobObject.getLastCompletedBuild();
+        if (otherBuild == null) {
+            listener.getLogger().println(FAIL_ON_BUILD_RESULT_LISTENER_PREFIX +
+                    Messages.FailOnBuildResultBuilder_OtherJobNeverBuilt(otherJob));
+            return false;
+        }
         Result buildResult = otherBuild.getResult();
-        listener.getLogger().format(FAIL_ON_BUILD_RESULT_LISTENER_PREFIX +
+        listener.getLogger().println(FAIL_ON_BUILD_RESULT_LISTENER_PREFIX +
                 Messages.FailOnBuildResultBuilder_ResultOfBuildIs(otherBuild.getFullDisplayName(), buildResult));
-        listener.getLogger().println();
 
         if (Result.SUCCESS.isBetterThan(buildResult)) {
             listener.getLogger().println(FAIL_ON_BUILD_RESULT_LISTENER_PREFIX +
