@@ -1,0 +1,5 @@
+<j:jelly xmlns:j="jelly:core" xmlns:l="/lib/layout" xmlns:st="jelly:stapler" xmlns:f="/lib/form">
+  <f:entry title="" field="otherProject">
+    <f:combobox />
+  </f:entry>
+</j:jelly>
