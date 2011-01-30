@@ -20,7 +20,7 @@
  * THE SOFTWARE.
  */
 
-package com.tngtech.hudson.plugins.failonbuildresult;
+package hudson.plugins.failonbuildresult;
 
 import hudson.Extension;
 import hudson.Launcher;
